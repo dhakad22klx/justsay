@@ -1,0 +1,12 @@
+# Which tool calls a human has to approve before the agent runs them.
+#
+# Consulted only when HITL_ENABLED=true in .env; with the flag off the agent
+# runs every call without asking. Read once, on the first check of a run, so
+# edits here need a restart.
+#
+# If this file is missing, nothing needs approval. If it is present but cannot
+# be read or parsed, every call needs approval: a typo must not quietly open a
+# gate that was meant to be shut.
+tools:
+  require_approval:
+    - send_updates_to_manager
