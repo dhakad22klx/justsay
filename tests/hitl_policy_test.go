@@ -31,6 +31,20 @@ func (t *gatedTool) Call(context.Context, map[string]any) (string, error) {
 	return "done", nil
 }
 
+// writeConfig puts a policy file where the package reads it from, which is a
+// path inside dir rather than dir itself.
+func writeConfig(t *testing.T, dir string, config string) {
+	t.Helper()
+
+	path := filepath.Join(dir, humanintheloop.ConfigFile)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("cannot make %s: %v", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
+		t.Fatalf("cannot write %s: %v", humanintheloop.ConfigFile, err)
+	}
+}
+
 // hitlWorkspace puts a .env and a hitl_config.yml in a fresh directory, runs
 // the test there, and loads the policy from them. The reload matters both ways:
 // the policy is held across calls, so without it a test would read whatever the
@@ -43,9 +57,7 @@ func hitlWorkspace(t *testing.T, env string, config string) {
 		t.Fatalf("cannot write .env: %v", err)
 	}
 	if config != "" {
-		if err := os.WriteFile(filepath.Join(dir, humanintheloop.ConfigFile), []byte(config), 0o600); err != nil {
-			t.Fatalf("cannot write %s: %v", humanintheloop.ConfigFile, err)
-		}
+		writeConfig(t, dir, config)
 	}
 
 	t.Chdir(dir)
@@ -186,9 +198,7 @@ func TestHitlWithABrokenConfigGatesEverything(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("HITL_ENABLED=\"true\"\n"), 0o600); err != nil {
 		t.Fatalf("cannot write .env: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, humanintheloop.ConfigFile), []byte("tools: [oops\n"), 0o600); err != nil {
-		t.Fatalf("cannot write %s: %v", humanintheloop.ConfigFile, err)
-	}
+	writeConfig(t, dir, "tools: [oops\n")
 
 	t.Chdir(dir)
 	t.Cleanup(func() { humanintheloop.Reload() })
