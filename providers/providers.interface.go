@@ -3,7 +3,7 @@ package providers
 import (
 	"context"
 
-	tools "agent-harness/tools"
+	tools "justsay-harness/tools"
 )
 
 // IProvider is the contract every model provider implements, so the CLI and the

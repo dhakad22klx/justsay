@@ -1,10 +1,10 @@
 package cli
 
 import (
-	tui "agent-harness/cli/tui"
-	integrations "agent-harness/integrations"
-	session "agent-harness/session"
 	"bufio"
+	tui "justsay-harness/cli/tui"
+	integrations "justsay-harness/integrations"
+	session "justsay-harness/session"
 	"strings"
 )
 

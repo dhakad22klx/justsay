@@ -231,7 +231,7 @@ func parseTTL(raw string) (time.Duration, error) {
 // parseDB reads REDIS_DB as the numbered database to select.
 //
 // A hosted Redis is usually addressed by endpoint and names its database
-// something like "database-agent-space", which is not an index and is not meant
+// something like "database-justsay", which is not an index and is not meant
 // as one. That name is accepted and ignored rather than rejected, because the
 // endpoint already picked the database; only a number is passed through.
 func parseDB(raw string) int {

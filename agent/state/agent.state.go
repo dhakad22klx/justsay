@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	providers "agent-harness/providers"
+	providers "justsay-harness/providers"
 )
 
 // RunStatus is where a run stands. A string, so a key read straight out of

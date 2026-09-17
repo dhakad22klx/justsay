@@ -5,7 +5,7 @@ package github
 import (
 	"context"
 
-	integrations "agent-harness/integrations"
+	integrations "justsay-harness/integrations"
 )
 
 // defaultAPI is the public API. GitHub Enterprise lives somewhere else, which

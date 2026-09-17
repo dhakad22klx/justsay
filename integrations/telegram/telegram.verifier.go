@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	integrations "agent-harness/integrations"
+	integrations "justsay-harness/integrations"
 )
 
 // This file is what "is this token any good" means for Telegram, kept away from

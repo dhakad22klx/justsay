@@ -1,14 +1,14 @@
 package cli
 
 import (
-	agent "agent-harness/agent"
-	state "agent-harness/agent/state"
-	credentials "agent-harness/credentials"
-	telegram "agent-harness/integrations/telegram"
-	providers "agent-harness/providers"
 	"context"
 	"errors"
 	"fmt"
+	agent "justsay-harness/agent"
+	state "justsay-harness/agent/state"
+	credentials "justsay-harness/credentials"
+	telegram "justsay-harness/integrations/telegram"
+	providers "justsay-harness/providers"
 	"strings"
 	"time"
 )

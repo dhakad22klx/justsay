@@ -9,7 +9,7 @@
 services:
   redisinsight:
     image: redis/redisinsight:latest
-    container_name: agent-space-redisinsight
+    container_name: justsay-redisinsight
     restart: unless-stopped
     ports:
       - "5540:5540"
