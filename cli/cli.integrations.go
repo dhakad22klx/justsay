@@ -1,12 +1,12 @@
 package cli
 
 import (
-	tui "agent-harness/cli/tui"
-	integrations "agent-harness/integrations"
-	github "agent-harness/integrations/github"
-	providers "agent-harness/providers"
-	session "agent-harness/session"
 	"bufio"
+	tui "justsay-harness/cli/tui"
+	integrations "justsay-harness/integrations"
+	github "justsay-harness/integrations/github"
+	providers "justsay-harness/providers"
+	session "justsay-harness/session"
 )
 
 // newCommands assembles the prompt's command set: the handlers that exist, and

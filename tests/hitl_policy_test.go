@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	agent "agent-harness/agent"
-	humanintheloop "agent-harness/agent/human-in-the-loop"
-	state "agent-harness/agent/state"
-	providers "agent-harness/providers"
-	tools "agent-harness/tools"
+	agent "justsay-harness/agent"
+	humanintheloop "justsay-harness/agent/human-in-the-loop"
+	state "justsay-harness/agent/state"
+	providers "justsay-harness/providers"
+	tools "justsay-harness/tools"
 
 	"github.com/alicebob/miniredis/v2"
 )

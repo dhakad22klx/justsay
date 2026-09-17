@@ -1,14 +1,14 @@
 package cli
 
 import (
-	agent "agent-harness/agent"
-	tui "agent-harness/cli/tui"
-	providers "agent-harness/providers"
-	session "agent-harness/session"
 	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	agent "justsay-harness/agent"
+	tui "justsay-harness/cli/tui"
+	providers "justsay-harness/providers"
+	session "justsay-harness/session"
 	"os"
 	"strings"
 
@@ -22,7 +22,7 @@ func StartCli() {
 	scanner := bufio.NewScanner(os.Stdin)
 	out := tui.NewOutput()
 
-	out.Banner("Welcome to the Agent-Space! Your personal AI assistant")
+	out.Banner("Welcome to the Just-Say! Your personal AI assistant")
 
 	// Every run gets its own transcript, and the id it was filed under is the
 	// last thing the user sees, however they leave.
@@ -70,7 +70,7 @@ func StartCli() {
 	defer cmds.stop()
 
 	for {
-		out.Prompt("agent-space>")
+		out.Prompt("justsay>")
 
 		if !scanner.Scan() {
 			break

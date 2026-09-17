@@ -1,7 +1,7 @@
 package main
 
 import (
-	cli "agent-harness/cli"
+	cli "justsay-harness/cli"
 )
 
 func main() {

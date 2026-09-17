@@ -1,11 +1,11 @@
 package cli
 
 import (
-	tui "agent-harness/cli/tui"
-	integrations "agent-harness/integrations"
 	"context"
 	"errors"
 	"fmt"
+	tui "justsay-harness/cli/tui"
+	integrations "justsay-harness/integrations"
 )
 
 // credential is the part of /verify that every integration does the same way:

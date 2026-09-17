@@ -1,4 +1,4 @@
-// Package tests holds black-box tests: they import agent-space the way the CLI
+// Package tests holds black-box tests: they import justsay the way the CLI
 // does, so they exercise the exported surface only.
 package tests
 
@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	agent "agent-harness/agent"
-	providers "agent-harness/providers"
-	tools "agent-harness/tools"
+	agent "justsay-harness/agent"
+	providers "justsay-harness/providers"
+	tools "justsay-harness/tools"
 )
 
 // scriptedProvider stands in for a model: it hands back replies that were

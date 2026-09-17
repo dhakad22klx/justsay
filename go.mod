@@ -1,4 +1,4 @@
-module agent-harness
+module justsay-harness
 
 go 1.26.5
 

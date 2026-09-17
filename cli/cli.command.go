@@ -1,9 +1,9 @@
 package cli
 
 import (
-	tui "agent-harness/cli/tui"
 	"context"
 	"fmt"
+	tui "justsay-harness/cli/tui"
 	"strings"
 
 	"github.com/joho/godotenv"

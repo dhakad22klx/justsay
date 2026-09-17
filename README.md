@@ -1,4 +1,4 @@
-# agent-space
+# justsay
 
 Agent Harness written in Go.
 
@@ -45,4 +45,4 @@ Agent Harness written in Go.
 
 ## Telegram integration
 
-Run `/verify telegram` at the `agent-space>` prompt. Enter a Telegram bot token when prompted (create one with [@BotFather](https://t.me/BotFather) if needed). The CLI validates the token, prints a one-time `/verify <code>` command, and waits for you to send it to that bot from the Telegram account to pair. After pairing, the CLI keeps listening for messages from that account and restores the saved pairing when it starts again.
+Run `/verify telegram` at the `justsay>` prompt. Enter a Telegram bot token when prompted (create one with [@BotFather](https://t.me/BotFather) if needed). The CLI validates the token, prints a one-time `/verify <code>` command, and waits for you to send it to that bot from the Telegram account to pair. After pairing, the CLI keeps listening for messages from that account and restores the saved pairing when it starts again.

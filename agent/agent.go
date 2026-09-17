@@ -7,10 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	humanintheloop "agent-harness/agent/human-in-the-loop"
-	state "agent-harness/agent/state"
-	providers "agent-harness/providers"
-	tools "agent-harness/tools"
+	humanintheloop "justsay-harness/agent/human-in-the-loop"
+	state "justsay-harness/agent/state"
+	providers "justsay-harness/providers"
+	tools "justsay-harness/tools"
 
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -21,7 +21,7 @@ import (
 // itself, so a second copy here would only be the one that goes stale. What
 // stays is what no single schema can say - how to treat what tools report, and
 // when not to call one at all.
-const systemPrompt = `You are agent-space, an assistant running in the user's terminal.
+const systemPrompt = `You are justsay, an assistant running in the user's terminal.
 
 Answer from what your tools actually report, never from what you assume. Each
 tool describes when it applies and what it cannot do; read those descriptions

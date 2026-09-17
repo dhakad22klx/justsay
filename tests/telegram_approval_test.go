@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	telegram "agent-harness/integrations/telegram"
+	telegram "justsay-harness/integrations/telegram"
 )
 
 // TestApprovalDataFits pins the Bot API's 64-byte limit on a button payload.
