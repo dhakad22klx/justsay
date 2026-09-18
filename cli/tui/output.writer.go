@@ -24,6 +24,7 @@ const (
 	Answer
 	Warn
 	Error
+	Private
 )
 
 // style is everything this layer decides about a type: how it is written, and
@@ -50,6 +51,9 @@ var styles = map[Type]style{
 	Answer:   {name: "answer", paint: Green, newline: true, keep: true},
 	Warn:     {name: "warn", paint: Yellow, newline: true, keep: true},
 	Error:    {name: "error", paint: Red, stderr: true, newline: true, keep: true},
+	// Private is visible in the terminal but never copied into a transcript.
+	// OAuth authorization URLs belong here because they contain one-time state.
+	Private: {name: "private", newline: true},
 }
 
 // Sink receives every message worth keeping, named by kind and still uncolored,
@@ -100,6 +104,7 @@ func (o *Output) Trace(text string)    { o.Print(Trace, text) }
 func (o *Output) Answer(text string)   { o.Print(Answer, text) }
 func (o *Output) Warn(text string)     { o.Print(Warn, text) }
 func (o *Output) Error(text string)    { o.Print(Error, text) }
+func (o *Output) Private(text string)  { o.Print(Private, text) }
 
 // Break ends the current line without saying anything, for when the terminal
 // swallowed the newline the user typed.

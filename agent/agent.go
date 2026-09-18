@@ -9,6 +9,8 @@ import (
 
 	humanintheloop "justsay-harness/agent/human-in-the-loop"
 	state "justsay-harness/agent/state"
+	credentials "justsay-harness/credentials"
+	gmail "justsay-harness/integrations/gmail"
 	providers "justsay-harness/providers"
 	tools "justsay-harness/tools"
 
@@ -131,6 +133,7 @@ func GetAgent(provider providers.IProvider) *Agent {
 		agentInstance = New(provider, tools.NewRegistry(
 			tools.NewRunBash(),
 			tools.NewSendUpdatesToManager(),
+			gmail.NewTool(credentials.DefaultPath),
 		))
 	})
 

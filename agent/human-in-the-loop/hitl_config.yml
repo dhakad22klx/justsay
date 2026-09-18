@@ -10,3 +10,4 @@
 tools:
   require_approval:
     - send_updates_to_manager
+    - gmail_send
