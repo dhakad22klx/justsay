@@ -5,11 +5,14 @@
    │
    ├─ github    verifierHandler.verify  = heading → collect → Verify → report ∎
    │
-   └─ telegram  telegramLink.verify     = heading → collect → Check  → report
-                                          → Pair → save → listen
+   ├─ telegram  telegramLink.verify     = heading → collect → Check  → report
+   │                                      → Pair → save → listen
+   │
+   └─ gmail     gmailLink.verify        = OAuth URL → loopback callback
+                                          → token exchange → save ∎
 ```
 
-`/verify github` and `/verify telegram` set a service up without leaving the
+`/verify github`, `/verify telegram`, and `/verify gmail` set a service up without leaving the
 prompt. A line opening with `/` is the CLI's to answer and never reaches the
 model, so an unsupported one is refused out loud rather than handed to something
 that will try to make sense of it.
@@ -35,7 +38,7 @@ The seam between parsing and doing is `cli.handler`: a name, a summary, and
 `verify`. The dispatcher matches the name, calls `verify`, and learns nothing
 else, so adding a command touches no parsing code.
 
-Both handlers embed `credential` and so open identically — ask, check, report.
+The typed-credential handlers embed `credential` and so open identically — ask, check, report.
 `report` answers whether the credential was accepted, and that is where the two
 part: GitHub is finished, Telegram carries on into pairing. An integration only
 writes a handler of its own when a check is not the whole story; such a handler
@@ -98,3 +101,9 @@ one integration writing cannot drop another's.
 
 Nothing else changes. Parsing, prompting, secret handling and reporting are all
 written against the interface.
+
+Gmail is intentionally a dedicated handler rather than an `IVerifier`: it uses
+an OAuth authorization-code flow with PKCE and a temporary loopback callback,
+not terminal-entered credentials. Its `gmail_send` tool loads and refreshes the
+saved grant internally. The model sees only message fields and never receives
+OAuth application credentials or user tokens.

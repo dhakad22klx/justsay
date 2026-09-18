@@ -31,6 +31,7 @@ func newCommands(out *tui.Output, in *bufio.Scanner, record *session.Session, pr
 		// answer, write what it learns, and leave the agent listening — none of
 		// which fits behind IVerifier.
 		newTelegramLink(shared, provider, sessionID),
+		newGmailLink(out),
 	}
 
 	// Everything else is a credential check and needs no code of its own; the
