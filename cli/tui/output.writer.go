@@ -53,7 +53,7 @@ var styles = map[Type]style{
 	Error:    {name: "error", paint: Red, stderr: true, newline: true, keep: true},
 	// Private is visible in the terminal but never copied into a transcript.
 	// OAuth authorization URLs belong here because they contain one-time state.
-	Private: {name: "private", newline: true},
+	Private: {name: "private", paint: Blue, newline: true},
 }
 
 // Sink receives every message worth keeping, named by kind and still uncolored,
