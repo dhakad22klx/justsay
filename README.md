@@ -26,7 +26,13 @@ Agent Harness written in Go.
 
    Set `MOCK_AGENT_CALL` to `true` to start without making model requests. Set `HITL_ENABLED` to `true` to hold the tool calls listed in `agent/human-in-the-loop/hitl_config.yml` for human approval, and configure the `REDIS_*` values for those approvals, including approvals sent through a paired Telegram account, since paused approvals are stored in Redis.
 
-3. Start the CLI from the repository root:
+3. Run the test suite from the repository root:
+
+   ```bash
+   go test ./...
+   ```
+
+4. Start the CLI from the repository root:
 
    ```bash
    go run .
