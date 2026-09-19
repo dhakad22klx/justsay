@@ -1,4 +1,4 @@
-package tests
+package telegram_test
 
 import (
 	"strings"

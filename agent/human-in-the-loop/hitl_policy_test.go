@@ -1,4 +1,4 @@
-package tests
+package humanintheloop_test
 
 import (
 	"context"
@@ -14,6 +14,25 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 )
+
+// scriptedProvider returns prepared model replies and counts requests so the
+// policy tests can check that a paused run does not ask the model again.
+type scriptedProvider struct {
+	replies []providers.Message
+	calls   int
+}
+
+func (p *scriptedProvider) Model() string { return "scripted" }
+
+func (p *scriptedProvider) Generate(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (p *scriptedProvider) Chat(context.Context, string, []providers.Message, []tools.Schema) (providers.Message, error) {
+	reply := p.replies[p.calls]
+	p.calls++
+	return reply, nil
+}
 
 // gatedTool stands in for a tool the policy may hold: it does nothing except
 // record that it ran, which is the whole question a HITL test asks.

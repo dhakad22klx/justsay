@@ -1,6 +1,5 @@
-// Package tests holds black-box tests: they import justsay the way the CLI
-// does, so they exercise the exported surface only.
-package tests
+// Package agent_test exercises the agent's exported surface the way the CLI does.
+package agent_test
 
 import (
 	"context"
