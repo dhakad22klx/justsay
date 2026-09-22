@@ -1,26 +1,35 @@
 package cli
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	agent "justsay-harness/agent"
 	tui "justsay-harness/cli/tui"
 	providers "justsay-harness/providers"
 	session "justsay-harness/session"
-	"os"
-	"strings"
 
+	"github.com/chzyer/readline"
 	"github.com/google/uuid"
 )
 
-// StartCli runs the read-prompt-answer loop until the user leaves. Nothing here
-// writes to a stream directly: out owns every byte the CLI produces.
+// StartCli runs the read-prompt-answer loop until the user leaves. Once terminal
+// setup succeeds, out owns application messages while readline owns prompts and
+// the line currently being edited.
 func StartCli() {
 	ctx := context.Background()
-	scanner := bufio.NewScanner(os.Stdin)
-	out := tui.NewOutput()
+	in, err := newTerminalInput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error preparing terminal input: %v\n", err)
+		return
+	}
+	defer in.close()
+
+	out := tui.NewOutputTo(in.stdout(), in.stderr())
 
 	out.Banner("Welcome to the Just-Say! Your personal AI assistant")
 
@@ -65,18 +74,23 @@ func StartCli() {
 	// only decides what a line is; this decides what to do about it, and owns
 	// whatever a command leaves running — a pairing saved by an earlier run
 	// starts polling here, and is stopped on the way out.
-	cmds := newCommands(out, scanner, session, provider, runID)
+	cmds := newCommands(out, in, session, provider, runID)
 	cmds.resume(ctx)
 	defer cmds.stop()
 
 	for {
-		out.Prompt("justsay>")
-
-		if !scanner.Scan() {
+		typed, err := in.read("justsay>", false)
+		if err == readline.ErrInterrupt {
+			continue
+		}
+		if err != nil {
+			if err != io.EOF {
+				out.Errorf("error reading input: %v", err)
+			}
 			break
 		}
 
-		input := strings.TrimSpace(scanner.Text())
+		input := strings.TrimSpace(typed)
 
 		// What the user typed never passes through out, so the transcript has
 		// to be told about it here.
@@ -106,10 +120,6 @@ func StartCli() {
 			answer(ctx, out, assistant, input, runID)
 			// assistant.Resume(ctx, input) -- to test Resume function by providing session id as input
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		out.Errorf("error reading input: %v", err)
 	}
 }
 

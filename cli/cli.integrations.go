@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bufio"
 	tui "justsay-harness/cli/tui"
 	integrations "justsay-harness/integrations"
 	github "justsay-harness/integrations/github"
@@ -16,10 +15,10 @@ import (
 // list it is given and never learns what is in it, so adding Slack is a package
 // under integrations/ and one more entry here.
 //
-// in is the loop's own scanner, shared rather than reopened — two readers on one
-// stdin strand input in each other's buffers. provider is what Telegram answers
-// over, and is the one piece the loop also needs, for its own agent.
-func newCommands(out *tui.Output, in *bufio.Scanner, record *session.Session, provider providers.IProvider, sessionID string) *commands {
+// in is the loop's own line reader, shared rather than reopened — two readers on
+// one stdin strand input in each other's buffers. provider is what Telegram
+// answers over, and is the one piece the loop also needs, for its own agent.
+func newCommands(out *tui.Output, in lineReader, record *session.Session, provider providers.IProvider, sessionID string) *commands {
 	// The opening every handler shares. It holds the loop's own stdin and this
 	// run's transcript, so a handler can ask for a token without handing the
 	// terminal to anything else.
