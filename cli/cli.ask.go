@@ -1,19 +1,21 @@
 package cli
 
 import (
-	"bufio"
+	"io"
+	"strings"
+
 	tui "justsay-harness/cli/tui"
 	integrations "justsay-harness/integrations"
 	session "justsay-harness/session"
-	"strings"
+
+	"github.com/chzyer/readline"
 )
 
-// asker reads answers from the same stdin the main loop is already reading, so
-// a verification happens inside the prompt instead of handing the terminal to
-// something else. It owns the scanner rather than opening its own, because two
-// readers on one stdin lose input to each other's buffers.
+// asker reads answers from the same input owner as the main loop, so a
+// verification happens inside the prompt without introducing a competing
+// buffered reader on stdin.
 type asker struct {
-	in     *bufio.Scanner
+	in     lineReader
 	out    *tui.Output
 	record *session.Session
 }
@@ -33,9 +35,7 @@ func (a *asker) field(field integrations.Field) (string, bool) {
 	label += ": "
 
 	for {
-		a.out.Prompt(label)
-
-		typed, ok := a.read(field.Secret)
+		typed, ok := a.read(label, field.Secret)
 		if !ok {
 			return "", false
 		}
@@ -55,31 +55,17 @@ func (a *asker) field(field integrations.Field) (string, bool) {
 }
 
 // read takes one line, masking it while it is typed when it is a secret.
-func (a *asker) read(secret bool) (string, bool) {
-	if !secret {
-		return a.line()
+func (a *asker) read(prompt string, secret bool) (string, bool) {
+	typed, err := a.in.read(prompt, secret)
+	if err == io.EOF || err == readline.ErrInterrupt {
+		return "", false
 	}
-
-	// Masking needs the terminal a character at a time, which only a real
-	// terminal will give. Anything else — a pipe, a machine without stty — is
-	// read as an ordinary visible line, because refusing the check would be the
-	// worse failure.
-	if typed, read, masked := tui.MaskedLine(a.out); masked {
-		return typed, read
-	}
-
-	return a.line()
-}
-
-// line reads one whole line from the loop's own scanner. The scanner is shared
-// with the main prompt on purpose: a second reader on the same stdin would
-// strand input in the other one's buffer.
-func (a *asker) line() (string, bool) {
-	if !a.in.Scan() {
+	if err != nil {
+		a.out.Errorf("error reading input: %v", err)
 		return "", false
 	}
 
-	return a.in.Text(), true
+	return typed, true
 }
 
 // remember puts the answer in the transcript, since the main loop only records
