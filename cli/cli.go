@@ -81,7 +81,8 @@ func StartCli() {
 	for {
 		typed, err := in.read("justsay>", false)
 		if err == readline.ErrInterrupt {
-			continue
+			out.Farewell("Goodbye!")
+			return
 		}
 		if err != nil {
 			if err != io.EOF {
