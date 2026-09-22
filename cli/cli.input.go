@@ -26,7 +26,7 @@ type terminalInput struct {
 
 func newTerminalInput() (*terminalInput, error) {
 	line, err := readline.NewEx(&readline.Config{
-		DisableAutoSaveHistory: true,
+		DisableAutoSaveHistory: false, // setting true will not save history
 		HistoryLimit:           100,
 		Stdin:                  os.Stdin,
 		Stdout:                 os.Stdout,
