@@ -10,6 +10,7 @@ import (
 
 	agent "justsay-harness/agent"
 	tui "justsay-harness/cli/tui"
+	"justsay-harness/credentials"
 	providers "justsay-harness/providers"
 	session "justsay-harness/session"
 
@@ -30,8 +31,6 @@ func StartCli() {
 	defer in.close()
 
 	out := tui.NewOutputTo(in.stdout(), in.stderr())
-
-	out.Banner("Welcome to the Just-Say! Your personal AI assistant")
 
 	// Every run gets its own transcript, and the id it was filed under is the
 	// last thing the user sees, however they leave.
@@ -75,6 +74,11 @@ func StartCli() {
 	// whatever a command leaves running — a pairing saved by an earlier run
 	// starts polling here, and is stopped on the way out.
 	cmds := newCommands(out, in, session, provider, runID)
+	model := "unavailable"
+	if provider != nil {
+		model = provider.Model()
+	}
+	out.Startup(model, integrationStatuses(credentials.DefaultPath))
 	cmds.resume(ctx)
 	defer cmds.stop()
 
@@ -166,8 +170,6 @@ func newProvider(ctx context.Context, out *tui.Output) providers.IProvider {
 		out.Errorf("gemini unavailable: %v", err)
 		return nil
 	}
-
-	out.Notice("model: " + gemini.Model())
 
 	return gemini
 }

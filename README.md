@@ -40,6 +40,12 @@ Agent Harness written in Go.
 
 ## CLI commands
 
+On startup, the terminal shows a panel with the selected model and saved
+integration status: Gmail authorization, Telegram pairing, and GitHub setup
+(currently not configured). Status is read locally; it is not a live service
+health check. Type `help` for integration setup commands. Narrow
+terminals use a compact layout, and `NO_COLOR` disables panel colors.
+
 | Command | Description |
 | --- | --- |
 | `help` | Show built-in and integration commands. |
