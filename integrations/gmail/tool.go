@@ -233,7 +233,7 @@ func (t *Tool) oauthConfig() (OAuthConfig, error) {
 	if strings.TrimSpace(t.OAuth.ClientID) != "" || strings.TrimSpace(t.OAuth.ClientSecret) != "" {
 		cfg := t.OAuth.withDefaults()
 		if cfg.ClientID == "" || cfg.ClientSecret == "" {
-			return OAuthConfig{}, errors.New("Google OAuth client ID and client secret are required")
+			return OAuthConfig{}, errors.New("missing Google OAuth client ID or client secret")
 		}
 		return cfg, nil
 	}
@@ -254,7 +254,7 @@ func (t *Tool) accessToken(ctx context.Context, cfg OAuthConfig, forceRefresh bo
 		return Record{}, err
 	}
 	if !found || strings.TrimSpace(record.RefreshToken) == "" {
-		return Record{}, errors.New("Gmail is not connected; run /verify gmail")
+		return Record{}, errors.New("not connected to Gmail; run /verify gmail")
 	}
 
 	now := time.Now()
@@ -315,9 +315,10 @@ func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", false, fmt.Errorf("Gmail API is unavailable: %w", err)
+		return "", false, fmt.Errorf("cannot reach Gmail API: %w", err)
 	}
-	defer res.Body.Close()
+	// Response reads report their own errors; closing the body is cleanup.
+	defer func() { _ = res.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, 64*1024))
 	if err != nil {
@@ -331,7 +332,7 @@ func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string
 		ID string `json:"id"`
 	}
 	if err := json.Unmarshal(body, &sent); err != nil {
-		return "", false, errors.New("Gmail API returned an unreadable success response")
+		return "", false, errors.New("unreadable success response from Gmail API")
 	}
 	if sent.ID == "" {
 		return "email sent through Gmail", false, nil
@@ -357,5 +358,5 @@ func gmailAPIError(status int, body []byte, accessToken string) error {
 	if accessToken != "" {
 		detail = strings.ReplaceAll(detail, accessToken, "[redacted]")
 	}
-	return fmt.Errorf("Gmail API rejected the message (HTTP %d): %s", status, detail)
+	return fmt.Errorf("message rejected by Gmail API (HTTP %d): %s", status, detail)
 }

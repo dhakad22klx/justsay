@@ -79,7 +79,7 @@ func ConfigFromEnv(path string) (OAuthConfig, error) {
 func Authorize(ctx context.Context, cfg OAuthConfig, showURL func(string)) (Record, error) {
 	cfg = cfg.withDefaults()
 	if strings.TrimSpace(cfg.ClientID) == "" || strings.TrimSpace(cfg.ClientSecret) == "" {
-		return Record{}, errors.New("Google OAuth client ID and client secret are required")
+		return Record{}, errors.New("missing Google OAuth client ID or client secret")
 	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -89,12 +89,12 @@ func Authorize(ctx context.Context, cfg OAuthConfig, showURL func(string)) (Reco
 
 	state, err := randomURLToken(32)
 	if err != nil {
-		listener.Close()
+		_ = listener.Close() // Preserve the token-generation error.
 		return Record{}, fmt.Errorf("create OAuth state: %w", err)
 	}
 	verifier, err := randomURLToken(48)
 	if err != nil {
-		listener.Close()
+		_ = listener.Close() // Preserve the token-generation error.
 		return Record{}, fmt.Errorf("create PKCE verifier: %w", err)
 	}
 	challengeBytes := sha256.Sum256([]byte(verifier))
@@ -117,9 +117,9 @@ func Authorize(ctx context.Context, cfg OAuthConfig, showURL func(string)) (Reco
 		var got callbackResult
 		switch {
 		case query.Get("error") != "":
-			got.err = fmt.Errorf("Google authorization was not granted: %s", safeOAuthText(query.Get("error")))
+			got.err = fmt.Errorf("authorization from Google was not granted: %s", safeOAuthText(query.Get("error")))
 		case strings.TrimSpace(query.Get("code")) == "":
-			got.err = errors.New("Google authorization returned no code")
+			got.err = errors.New("authorization from Google returned no code")
 		default:
 			got.code = query.Get("code")
 		}
@@ -129,13 +129,15 @@ func Authorize(ctx context.Context, cfg OAuthConfig, showURL func(string)) (Reco
 		default:
 		}
 
+		// The callback result is already delivered. A browser disconnect must
+		// not change whether authorization succeeded.
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if got.err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, "Gmail authorization failed. You may close this window.")
+			_, _ = fmt.Fprintln(w, "Gmail authorization failed. You may close this window.")
 			return
 		}
-		fmt.Fprintln(w, "Gmail authorization complete. You may close this window.")
+		_, _ = fmt.Fprintln(w, "Gmail authorization complete. You may close this window.")
 	})
 
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
@@ -174,7 +176,7 @@ func Authorize(ctx context.Context, cfg OAuthConfig, showURL func(string)) (Reco
 		return Record{}, err
 	}
 	if record.RefreshToken == "" {
-		return Record{}, errors.New("Google returned no refresh token; revoke the app grant and authorize Gmail again")
+		return Record{}, errors.New("no refresh token returned by Google; revoke the app grant and authorize Gmail again")
 	}
 
 	return record, nil
@@ -247,9 +249,10 @@ func requestToken(ctx context.Context, cfg OAuthConfig, form url.Values) (tokenR
 
 	res, err := cfg.HTTPClient.Do(req)
 	if err != nil {
-		return tokenResponse{}, fmt.Errorf("Google token endpoint is unavailable: %w", err)
+		return tokenResponse{}, fmt.Errorf("cannot reach Google token endpoint: %w", err)
 	}
-	defer res.Body.Close()
+	// Response reads report their own errors; closing the body is cleanup.
+	defer func() { _ = res.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, 64*1024))
 	if err != nil {
@@ -257,7 +260,7 @@ func requestToken(ctx context.Context, cfg OAuthConfig, form url.Values) (tokenR
 	}
 	var token tokenResponse
 	if err := json.Unmarshal(body, &token); err != nil {
-		return tokenResponse{}, fmt.Errorf("Google token endpoint returned HTTP %d with an unreadable response", res.StatusCode)
+		return tokenResponse{}, fmt.Errorf("unreadable response from Google token endpoint (HTTP %d)", res.StatusCode)
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 || token.Error != "" {
 		detail := safeOAuthText(token.Error)
@@ -274,10 +277,10 @@ func requestToken(ctx context.Context, cfg OAuthConfig, form url.Values) (tokenR
 		if detail == "" {
 			detail = http.StatusText(res.StatusCode)
 		}
-		return tokenResponse{}, fmt.Errorf("Google token endpoint rejected the request (HTTP %d): %s", res.StatusCode, detail)
+		return tokenResponse{}, fmt.Errorf("request rejected by Google token endpoint (HTTP %d): %s", res.StatusCode, detail)
 	}
 	if strings.TrimSpace(token.AccessToken) == "" {
-		return tokenResponse{}, errors.New("Google token endpoint returned no access token")
+		return tokenResponse{}, errors.New("no access token returned by Google token endpoint")
 	}
 
 	return token, nil

@@ -24,7 +24,9 @@ func (o *Output) Startup(model string, systems []IntegrationStatus) {
 	color := readline.IsTerminal(int(os.Stdout.Fd())) && !noColor && os.Getenv("TERM") != "dumb"
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	fmt.Fprint(o.stdout, startupPanel(model, systems, width, color))
+	// The startup panel is decorative; a failed write must not prevent the
+	// agent from starting.
+	_, _ = fmt.Fprint(o.stdout, startupPanel(model, systems, width, color))
 }
 
 func startupPanel(model string, systems []IntegrationStatus, width int, color bool) string {

@@ -79,12 +79,17 @@ func hitlWorkspace(t *testing.T, env string, config string) {
 		writeConfig(t, dir, config)
 	}
 
+	// Register first so the original directory is restored before reloading.
+	t.Cleanup(func() {
+		if err := humanintheloop.Reload(); err != nil {
+			t.Errorf("restore approval policy: %v", err)
+		}
+	})
 	t.Chdir(dir)
 
 	if err := humanintheloop.Reload(); err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
-	t.Cleanup(func() { humanintheloop.Reload() })
 }
 
 // callThenAnswer scripts a model that asks for one tool and then answers.
@@ -219,8 +224,13 @@ func TestHitlWithABrokenConfigGatesEverything(t *testing.T) {
 	}
 	writeConfig(t, dir, "tools: [oops\n")
 
+	// Register first so the original directory is restored before reloading.
+	t.Cleanup(func() {
+		if err := humanintheloop.Reload(); err != nil {
+			t.Errorf("restore approval policy: %v", err)
+		}
+	})
 	t.Chdir(dir)
-	t.Cleanup(func() { humanintheloop.Reload() })
 
 	if err := humanintheloop.Reload(); err == nil {
 		t.Error("a config that does not parse reloaded without an error")

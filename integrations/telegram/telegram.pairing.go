@@ -82,6 +82,9 @@ func Pair(ctx context.Context, client *Client, announce func(code string, lifeti
 	attempts := map[int64]int{}
 	hinted := map[int64]bool{}
 
+	// Hints are best effort: a failed reply to an unpaired sender must not
+	// abort pairing for the intended user.
+
 	for {
 		updates, err := client.GetUpdates(ctx, offset, pairPollWait)
 		if err != nil {
@@ -115,7 +118,7 @@ func Pair(ctx context.Context, client *Client, announce func(code string, lifeti
 				// bot that can be made to send mail for free.
 				if !hinted[message.Chat.ID] {
 					hinted[message.Chat.ID] = true
-					client.SendMessage(ctx, message.Chat.ID, "Send /verify followed by the code shown in the agent's terminal.")
+					_ = client.SendMessage(ctx, message.Chat.ID, "Send /verify followed by the code shown in the agent's terminal.")
 				}
 
 				continue
@@ -134,11 +137,11 @@ func Pair(ctx context.Context, client *Client, announce func(code string, lifeti
 			attempts[message.Chat.ID]++
 			left := MaxAttempts - attempts[message.Chat.ID]
 			if left > 0 {
-				client.SendMessage(ctx, message.Chat.ID, fmt.Sprintf("That code is not right. %d attempt(s) left.", left))
+				_ = client.SendMessage(ctx, message.Chat.ID, fmt.Sprintf("That code is not right. %d attempt(s) left.", left))
 				continue
 			}
 
-			client.SendMessage(ctx, message.Chat.ID, "That code is not right. No attempts left — start again from the agent's terminal.")
+			_ = client.SendMessage(ctx, message.Chat.ID, "That code is not right. No attempts left — start again from the agent's terminal.")
 		}
 	}
 }

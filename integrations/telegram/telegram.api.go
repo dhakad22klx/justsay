@@ -387,7 +387,8 @@ func (c *Client) call(ctx context.Context, method string, params url.Values, out
 		// token. This is the reason Scrub exists.
 		return fmt.Errorf("cannot reach the Bot API for %s: %s", method, c.Scrub(err.Error()))
 	}
-	defer response.Body.Close()
+	// Response reads report their own errors; closing the body is cleanup.
+	defer func() { _ = response.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes))
 	if err != nil {

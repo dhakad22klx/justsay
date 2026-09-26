@@ -28,7 +28,12 @@ func StartCli() {
 		fmt.Fprintf(os.Stderr, "error preparing terminal input: %v\n", err)
 		return
 	}
-	defer in.close()
+	defer func() {
+		if err := in.close(); err != nil {
+			// Readline is closed, so report directly to the process stream.
+			_, _ = fmt.Fprintf(os.Stderr, "error closing terminal input: %v\n", err)
+		}
+	}()
 
 	out := tui.NewOutputTo(in.stdout(), in.stderr())
 
