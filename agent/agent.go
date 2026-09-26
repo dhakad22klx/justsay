@@ -75,7 +75,6 @@ type Agent struct {
 
 	mu      sync.Mutex
 	history []providers.Message
-	session string // names this run in the state store
 
 	// OnToolCall, when set, runs after each tool call so the UI can show what
 	// the agent is doing.
@@ -215,7 +214,9 @@ func (a *Agent) ResumeApproval(ctx context.Context, sessionID string, approvalID
 	if err != nil {
 		return "", err
 	}
-	defer store.Close()
+	// Redis operations are acknowledged before pool cleanup. A close failure
+	// must not turn a completed operation into a retryable failure.
+	defer func() { _ = store.Close() }()
 
 	saved, err := held(ctx, store, sessionID, approvalID)
 	if err != nil {
@@ -297,7 +298,9 @@ func (a *Agent) Decline(ctx context.Context, sessionID string, approvalID string
 	if err != nil {
 		return "", err
 	}
-	defer store.Close()
+	// Redis operations are acknowledged before pool cleanup. A close failure
+	// must not turn a completed operation into a retryable failure.
+	defer func() { _ = store.Close() }()
 
 	saved, err := held(ctx, store, sessionID, approvalID)
 	if err != nil {
@@ -358,7 +361,9 @@ func (a *Agent) pause(ctx context.Context, sessionID string, call providers.Tool
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	// Redis operations are acknowledged before pool cleanup. A close failure
+	// must not turn a completed operation into a retryable failure.
+	defer func() { _ = store.Close() }()
 
 	pending := state.PendingApproval{
 		ID:             uuid.NewString(),

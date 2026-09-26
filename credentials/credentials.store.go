@@ -111,7 +111,7 @@ func (s *Store) Set(name string, value any) error {
 // file that parses as neither the old credentials nor the new ones. The
 // temporary file is created at fileMode, and the rename carries that mode onto
 // the result, which is what tightens a file that had been loosened.
-func (s *Store) Save() error {
+func (s *Store) Save() (saveErr error) {
 	encoded, err := json.MarshalIndent(s.doc, "", "  ")
 	if err != nil {
 		return fmt.Errorf("cannot encode %s: %w", s.path, err)
@@ -132,15 +132,19 @@ func (s *Store) Save() error {
 	// From here on the temporary file is removed on every path out but the
 	// successful rename, so a failed save does not litter the directory with
 	// files holding a token.
-	defer os.Remove(tempPath)
+	defer func() {
+		if err := os.Remove(tempPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+			saveErr = errors.Join(saveErr, fmt.Errorf("cannot remove temporary credentials file: %w", err))
+		}
+	}()
 
 	if err := temp.Chmod(fileMode); err != nil {
-		temp.Close()
+		_ = temp.Close() // Preserve the permission error; deferred removal still runs.
 		return fmt.Errorf("cannot restrict permissions on %s: %w", s.path, err)
 	}
 
 	if _, err := temp.Write(encoded); err != nil {
-		temp.Close()
+		_ = temp.Close() // Preserve the write error; deferred removal still runs.
 		return fmt.Errorf("cannot write %s: %w", s.path, err)
 	}
 

@@ -52,7 +52,9 @@ func TestToolRefreshesTokenPersistsItAndSendsMessage(t *testing.T) {
 				t.Errorf("client_secret = %q", got)
 			}
 			w.Header().Set("Content-Type", "application/json")
-			io.WriteString(w, `{"access_token":"fresh-access-token","token_type":"Bearer","expires_in":3600}`)
+			if _, err := io.WriteString(w, `{"access_token":"fresh-access-token","token_type":"Bearer","expires_in":3600}`); err != nil {
+				t.Errorf("write refresh response: %v", err)
+			}
 
 		case "/gmail/v1/users/me/messages/send":
 			sends++
@@ -90,7 +92,9 @@ func TestToolRefreshesTokenPersistsItAndSendsMessage(t *testing.T) {
 				t.Errorf("body = %q", got)
 			}
 			w.Header().Set("Content-Type", "application/json")
-			io.WriteString(w, `{"id":"message-123","threadId":"thread-456"}`)
+			if _, err := io.WriteString(w, `{"id":"message-123","threadId":"thread-456"}`); err != nil {
+				t.Errorf("write send response: %v", err)
+			}
 
 		default:
 			http.NotFound(w, r)
@@ -163,7 +167,9 @@ func TestToolReportsGmailAPIErrorWithoutLeakingToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		io.WriteString(w, `{"error":{"code":403,"message":"Gmail API has not been used in this project","status":"PERMISSION_DENIED"}}`)
+		if _, err := io.WriteString(w, `{"error":{"code":403,"message":"Gmail API has not been used in this project","status":"PERMISSION_DENIED"}}`); err != nil {
+			t.Errorf("write API error response: %v", err)
+		}
 	}))
 	defer server.Close()
 

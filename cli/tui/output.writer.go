@@ -153,5 +153,6 @@ func (o *Output) Print(messageType Type, text string) {
 		writer = o.stderr
 	}
 
-	fmt.Fprint(writer, text)
+	// Terminal output is best effort; the transcript already holds the text.
+	_, _ = fmt.Fprint(writer, text)
 }

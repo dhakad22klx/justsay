@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -140,7 +141,11 @@ func takeTerminal() (restore func(), ok bool) {
 		return nil, false
 	}
 
-	return func() { stty(strings.TrimSpace(saved)) }, true
+	return func() {
+		if _, err := stty(strings.TrimSpace(saved)); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "cannot restore terminal settings: %v\n", err)
+		}
+	}, true
 }
 
 // onInterrupt restores the terminal if the process is signalled while a secret

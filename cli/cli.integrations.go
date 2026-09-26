@@ -1,12 +1,58 @@
 package cli
 
 import (
+	"strings"
+
 	tui "justsay-harness/cli/tui"
+	"justsay-harness/credentials"
 	integrations "justsay-harness/integrations"
 	github "justsay-harness/integrations/github"
+	"justsay-harness/integrations/gmail"
+	"justsay-harness/integrations/telegram"
 	providers "justsay-harness/providers"
 	session "justsay-harness/session"
 )
+
+// integrationStatuses describes saved setup without making network requests or
+// exposing credentials. A saved grant is not a live service health check.
+func integrationStatuses(path string) []tui.IntegrationStatus {
+	rows := []tui.IntegrationStatus{
+		{Name: "Gmail", Status: "not-configured", Detail: "/verify gmail"},
+		{Name: "Telegram", Status: "not-configured", Detail: "/verify telegram"},
+		{Name: "GitHub", Status: "not-configured", Detail: "Setup coming soon"},
+	}
+	store, err := credentials.Open(path)
+	if err != nil {
+		for i := 0; i < 2; i++ {
+			rows[i].Status = "unavailable"
+			rows[i].Detail = "Cannot read saved credentials"
+		}
+		return rows
+	}
+
+	var mail gmail.Record
+	found, err := store.Get(gmail.CredentialsKey, &mail)
+	switch {
+	case err != nil:
+		rows[0].Status, rows[0].Detail = "needs attention", "Invalid saved authorization"
+	case found && strings.TrimSpace(mail.RefreshToken) != "":
+		rows[0].Status, rows[0].Detail, rows[0].Ready = "connected", "Send email", true
+	case found:
+		rows[0].Status = "needs attention"
+	}
+
+	var chat telegram.Record
+	found, err = store.Get(telegram.CredentialsKey, &chat)
+	switch {
+	case err != nil:
+		rows[1].Status, rows[1].Detail = "needs attention", "Invalid saved pairing"
+	case found && chat.Paired() && strings.TrimSpace(chat.BotToken) != "":
+		rows[1].Status, rows[1].Detail, rows[1].Ready = "paired successfully", "Chat with your agent", true
+	case found:
+		rows[1].Status = "needs attention"
+	}
+	return rows
+}
 
 // newCommands assembles the prompt's command set: the handlers that exist, and
 // the dispatcher that parses a line and picks one.

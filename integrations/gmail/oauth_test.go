@@ -38,13 +38,15 @@ func TestAuthorizeUsesSendScopePKCEAndLoopbackCallback(t *testing.T) {
 			t.Errorf("PKCE challenge = %q, want %q", got, want)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"access_token":  "access-token",
 			"refresh_token": "refresh-token",
 			"token_type":    "Bearer",
 			"expires_in":    3600,
 			"scope":         SendScope,
-		})
+		}); err != nil {
+			t.Errorf("write token response: %v", err)
+		}
 	}))
 	defer tokenServer.Close()
 
@@ -84,8 +86,12 @@ func TestAuthorizeUsesSendScopePKCEAndLoopbackCallback(t *testing.T) {
 		if requestErr != nil {
 			t.Fatalf("call OAuth callback: %v", requestErr)
 		}
-		io.Copy(io.Discard, res.Body)
-		res.Body.Close()
+		if _, err := io.Copy(io.Discard, res.Body); err != nil {
+			t.Errorf("read OAuth callback response: %v", err)
+		}
+		if err := res.Body.Close(); err != nil {
+			t.Errorf("close OAuth callback response: %v", err)
+		}
 		if res.StatusCode != http.StatusOK {
 			t.Errorf("callback status = %d", res.StatusCode)
 		}

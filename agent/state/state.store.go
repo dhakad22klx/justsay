@@ -103,7 +103,7 @@ func OpenRedis(ctx context.Context) (*RedisStore, error) {
 	})
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		client.Close()
+		_ = client.Close() // Preserve the connection failure, not pool cleanup errors.
 		return nil, fmt.Errorf("cannot reach redis at %s: %w", addr, err)
 	}
 
