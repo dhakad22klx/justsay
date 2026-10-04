@@ -61,7 +61,13 @@ side effect.
 
 Access and refresh tokens are stored in the ignored `credentials.json` file,
 which is written with owner-only (`0600`) permissions. Expired access tokens
-are refreshed automatically and the replacement is persisted. OAuth secrets,
+are refreshed automatically, including a one-minute margin before expiry, and
+the replacement token and expiry are persisted before sending. If Google
+rotates the refresh token, its replacement is saved; otherwise the existing
+refresh token is retained. Concurrent calls in the same process share a
+refresh for the same credentials file. A Gmail API 401 triggers a refresh and
+one retry. If the saved refresh token is missing or revoked, reconnect with
+`/verify gmail`. OAuth secrets,
 tokens, and the one-time authorization URL are not included in model tool
 arguments, model context, or session transcripts. Do not commit `.env` or
 `credentials.json`.

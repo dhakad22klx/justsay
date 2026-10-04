@@ -12,12 +12,9 @@ import (
 	"mime/quotedprintable"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"strings"
-	"sync"
 	"time"
 
-	credentials "justsay-harness/credentials"
 	tools "justsay-harness/tools"
 )
 
@@ -30,8 +27,6 @@ type Tool struct {
 	APIBaseURL      string
 	HTTPClient      *http.Client
 	Now             func() time.Time
-
-	mu sync.Mutex
 }
 
 var _ tools.Tool = (*Tool)(nil)
@@ -96,18 +91,23 @@ func (t *Tool) Call(ctx context.Context, args map[string]any) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("gmail authentication is not configured: %w", err)
 	}
-	record, err := t.accessToken(ctx, cfg, false)
+	record, err := t.accessToken(ctx, cfg, "")
 	if err != nil {
 		return "", fmt.Errorf("gmail authentication failed: %w", err)
 	}
 
-	output, unauthorized, err := t.send(ctx, record.AccessToken, raw)
+	secrets := []string{record.AccessToken, record.RefreshToken, cfg.ClientSecret}
+	output, unauthorized, err := t.send(ctx, record.AccessToken, raw, secrets...)
 	if unauthorized {
-		record, refreshErr := t.accessToken(ctx, cfg, true)
+		record, refreshErr := t.accessToken(ctx, cfg, record.AccessToken)
 		if refreshErr != nil {
 			return "", fmt.Errorf("gmail authentication failed after access was rejected: %w", refreshErr)
 		}
-		output, _, err = t.send(ctx, record.AccessToken, raw)
+		secrets = append(secrets, record.AccessToken, record.RefreshToken)
+		output, unauthorized, err = t.send(ctx, record.AccessToken, raw, secrets...)
+		if unauthorized {
+			return "", ErrReconnect
+		}
 	}
 	if err != nil {
 		return "", err
@@ -240,57 +240,7 @@ func (t *Tool) oauthConfig() (OAuthConfig, error) {
 	return ConfigFromEnv(".env")
 }
 
-func (t *Tool) accessToken(ctx context.Context, cfg OAuthConfig, forceRefresh bool) (Record, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	store, err := credentials.Open(t.CredentialsPath)
-	if err != nil {
-		return Record{}, err
-	}
-	var record Record
-	found, err := store.Get(CredentialsKey, &record)
-	if err != nil {
-		return Record{}, err
-	}
-	if !found || strings.TrimSpace(record.RefreshToken) == "" {
-		return Record{}, errors.New("not connected to Gmail; run /verify gmail")
-	}
-
-	now := time.Now()
-	if t.Now != nil {
-		now = t.Now()
-	}
-	valid := strings.TrimSpace(record.AccessToken) != "" && (record.Expiry.IsZero() || record.Expiry.After(now.Add(time.Minute)))
-	if valid && !forceRefresh {
-		return record, nil
-	}
-
-	form := url.Values{
-		"client_id":     {cfg.ClientID},
-		"client_secret": {cfg.ClientSecret},
-		"refresh_token": {record.RefreshToken},
-		"grant_type":    {"refresh_token"},
-	}
-	token, err := requestToken(ctx, cfg, form)
-	if err != nil {
-		return Record{}, fmt.Errorf("refresh Google access token: %w", err)
-	}
-	refreshed := recordFromToken(token, now)
-	if refreshed.RefreshToken == "" {
-		refreshed.RefreshToken = record.RefreshToken
-	}
-	if err := store.Set(CredentialsKey, refreshed); err != nil {
-		return Record{}, err
-	}
-	if err := store.Save(); err != nil {
-		return Record{}, err
-	}
-
-	return refreshed, nil
-}
-
-func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string, bool, error) {
+func (t *Tool) send(ctx context.Context, accessToken string, raw []byte, secrets ...string) (string, bool, error) {
 	payload, err := json.Marshal(map[string]string{
 		"raw": base64.RawURLEncoding.EncodeToString(raw),
 	})
@@ -315,7 +265,7 @@ func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", false, fmt.Errorf("cannot reach Gmail API: %w", err)
+		return "", false, safeTransportError(ctx, "cannot reach Gmail API")
 	}
 	// Response reads report their own errors; closing the body is cleanup.
 	defer func() { _ = res.Body.Close() }()
@@ -325,7 +275,7 @@ func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string
 		return "", false, errors.New("read Gmail API response")
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return "", res.StatusCode == http.StatusUnauthorized, gmailAPIError(res.StatusCode, body, accessToken)
+		return "", res.StatusCode == http.StatusUnauthorized, gmailAPIError(res.StatusCode, body, secrets...)
 	}
 
 	var sent struct {
@@ -337,10 +287,10 @@ func (t *Tool) send(ctx context.Context, accessToken string, raw []byte) (string
 	if sent.ID == "" {
 		return "email sent through Gmail", false, nil
 	}
-	return fmt.Sprintf("email sent through Gmail (message ID %s)", sent.ID), false, nil
+	return fmt.Sprintf("email sent through Gmail (message ID %s)", safeOAuthText(redactSecrets(sent.ID, secrets...))), false, nil
 }
 
-func gmailAPIError(status int, body []byte, accessToken string) error {
+func gmailAPIError(status int, body []byte, secrets ...string) error {
 	var response struct {
 		Error struct {
 			Message string `json:"message"`
@@ -348,15 +298,12 @@ func gmailAPIError(status int, body []byte, accessToken string) error {
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(body, &response)
-	detail := safeOAuthText(response.Error.Message)
+	detail := safeOAuthText(redactSecrets(response.Error.Message, secrets...))
 	if detail == "" {
-		detail = safeOAuthText(response.Error.Status)
+		detail = safeOAuthText(redactSecrets(response.Error.Status, secrets...))
 	}
 	if detail == "" {
 		detail = http.StatusText(status)
-	}
-	if accessToken != "" {
-		detail = strings.ReplaceAll(detail, accessToken, "[redacted]")
 	}
 	return fmt.Errorf("message rejected by Gmail API (HTTP %d): %s", status, detail)
 }

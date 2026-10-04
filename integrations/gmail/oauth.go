@@ -221,7 +221,6 @@ type tokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 	Scope        string `json:"scope"`
 	Error        string `json:"error"`
-	Description  string `json:"error_description"`
 }
 
 func exchangeCode(ctx context.Context, cfg OAuthConfig, redirectURL, code, verifier string) (Record, error) {
@@ -249,7 +248,7 @@ func requestToken(ctx context.Context, cfg OAuthConfig, form url.Values) (tokenR
 
 	res, err := cfg.HTTPClient.Do(req)
 	if err != nil {
-		return tokenResponse{}, fmt.Errorf("cannot reach Google token endpoint: %w", err)
+		return tokenResponse{}, safeTransportError(ctx, "cannot reach Google token endpoint")
 	}
 	// Response reads report their own errors; closing the body is cleanup.
 	defer func() { _ = res.Body.Close() }()
@@ -263,19 +262,15 @@ func requestToken(ctx context.Context, cfg OAuthConfig, form url.Values) (tokenR
 		return tokenResponse{}, fmt.Errorf("unreadable response from Google token endpoint (HTTP %d)", res.StatusCode)
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 || token.Error != "" {
-		detail := safeOAuthText(token.Error)
-		if description := safeOAuthText(token.Description); description != "" {
-			detail += ": " + description
+		if token.Error == "invalid_grant" {
+			return tokenResponse{}, ErrReconnect
 		}
-		for _, values := range form {
-			for _, secret := range values {
-				if len(secret) >= 8 {
-					detail = strings.ReplaceAll(detail, secret, "[redacted]")
-				}
-			}
-		}
-		if detail == "" {
-			detail = http.StatusText(res.StatusCode)
+		// Provider descriptions and arbitrary error codes may echo credentials,
+		// including tokens returned in the same response. Expose only known codes.
+		detail := http.StatusText(res.StatusCode)
+		switch token.Error {
+		case "invalid_client", "unauthorized_client", "invalid_request", "unsupported_grant_type", "invalid_scope", "temporarily_unavailable", "server_error":
+			detail = token.Error
 		}
 		return tokenResponse{}, fmt.Errorf("request rejected by Google token endpoint (HTTP %d): %s", res.StatusCode, detail)
 	}
